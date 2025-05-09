@@ -1,0 +1,51 @@
+services: 
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - database
+    networks:
+      - backend_network
+
+  database:
+    container_name: database
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: FOQN_328diowafds
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    networks:
+      - backend_network
+
+  # frontend:
+  #   container_name: frontend
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+  #   env_file:
+  #     - ./frontend/.env
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - frontend_network
+
+networks:
+  backend_network:
+    driver: bridge

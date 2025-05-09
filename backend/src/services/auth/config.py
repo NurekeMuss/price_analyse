@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class AuthSettings():
-    SECRET_KEY = os.getenv("SECRET_KEY")
+    SECRET_KEY = os.getenv("SECRET_KEY", 'fijofnwqoniuweqfnoo')
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 week
     REFRESH_TOKEN_EXPIRE_MINUTES = 1440  # 1 day

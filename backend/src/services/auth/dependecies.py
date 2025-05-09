@@ -1,6 +1,6 @@
 from .service import AuthService
 from .utils.jwt_service import JWTManager
-from src.modules.user.dependencies import get_user_service
+from src.dependencies import get_user_service
 from .config import auth_settings
 
 # Instantiate shared utility instances

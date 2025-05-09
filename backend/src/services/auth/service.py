@@ -3,11 +3,9 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.logger import get_logger
-from src.modules.user.schemas import UserCreate
-from src.modules.user.service import UserService
-from src.service.auth.utils.jwt_service import JWTManager
-from user_agents import parse
-
+from src.schemas import UserCreate
+from src.services import UserService
+from .utils.jwt_service import JWTManager
 logger = get_logger(__name__)
 
 
@@ -23,43 +21,28 @@ class AuthService:
     async def register_user(
             self, 
             user_create: UserCreate, 
-            db: AsyncSession,
-            ip_address: str,
-            device_info: str
+            db: AsyncSession
         ):
         """
         Register a new user with optional referral logic.
         """
         logger.debug(f"Registering user: {user_create}")
 
-        # Validate user input
-        if await self.user_service.get_user_by_username(db, user_create.username):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already registered"
-            )
-        user_create.ip_address = ip_address
-        user_create.device_info = str(parse(device_info))
-
         user = await self.user_service.create_user(db=db, user=user_create)
-        
-        # Generate tokens
         tokens = await self.jwt_manager.generate_tokens(user)
 
         return tokens
 
     async def authenticate_user(
             self, 
-            username: str, 
+            email: str, 
             password: str, 
-            db: AsyncSession,
-            ip_address: str,
-            device_info: str
+            db: AsyncSession
         ):
         """
         Authenticate user and return tokens or error response.
         """
-        user = await self.user_service.get_user_by_username(db, username)
+        user = await self.user_service.get_user_by_email(db, email)
         
         if not user:
             raise HTTPException(
@@ -68,30 +51,16 @@ class AuthService:
             )
         
         if not self.user_service.password_manager.verify_password(password, user.password_hash):
-            suspicious_number = await self.redis_service.suspicious_activity(user.id)
-            if suspicious_number > 3:
-                user = await self.user_service.update_user(db=db, db_obj=user, user_data={"is_blocked": True})
-                await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Incorrect password"
             )
-        await self.redis_service.reset_suspicious_activity(user.id)
-
-        await self.user_service.update_last_login(
-            db=db,
-            id=user.id,
-            ip_address=ip_address,
-            device_info=str(parse(device_info))
-        )
         tokens = await self.jwt_manager.generate_tokens(user)
-        # Update last_login timestamp
-        is_blocked = await self.redis_service.is_token_blocked(tokens[0])
-        if is_blocked or user.is_blocked:
-            logger.info(f"User {user.username} is blocked")
+        if user.is_blocked:
+            logger.info(f"User {user.email} is blocked")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token blocked"
+                detail="User is blocked"
             )
 
         return tokens
@@ -149,11 +118,10 @@ class AuthService:
             "role": status_role,
         }
         
-        user = await self.user_service.get_user(db, user_id)
+        user = await self.user_service.get_user_by_id(db, user_id)
         await self.user_service.update_user(db=db, db_obj=user, user_data={"blocked": False})
         
         return await self.jwt_manager.generate_tokens_from_payload(data)
     
     async def logout(self, token: str):
-        await self.redis_service.add_to_blocklist(token)
         return {"message": "Logged out successfully"}   

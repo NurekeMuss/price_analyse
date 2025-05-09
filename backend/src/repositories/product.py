@@ -1,5 +1,5 @@
 from src.core.db.models import ProductTable
-from src.schemas import ProductCreate, ProductInDB, ProductUpdate
+from src.schemas import ProductCreate, ProductUpdate
 
 from .base import RepositoryBase
 
