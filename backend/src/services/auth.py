@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.logger import get_logger
 from src.schemas import UserCreate
 from src.services import UserService
-from .utils.jwt_service import JWTManager
+from .jwt_manager import JWTManager
 logger = get_logger(__name__)
 
 

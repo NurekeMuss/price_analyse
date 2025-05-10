@@ -1,9 +1,8 @@
-from src.schemas import ProductCreate, ProductInDB, ProductUpdate
-from src.core.db.models import ProductTable
-from src.repositories import ProductRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from src.core.db.database import get_db
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.repositories import ProductRepository
+from src.schemas import ProductCreate, ProductInDB, ProductUpdate
 
 
 class ProductService:
@@ -29,8 +28,7 @@ class ProductService:
         """
         Delete a product from the database.
         """
-        product = await self.product_repository.get(db=db, id=product_id)
-        await self.product_repository.delete(db=db, db_obj=product)
+        return await self.product_repository.remove(db=db, id=product_id)
 
     async def get_all_products(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> List[ProductInDB]:
         """
