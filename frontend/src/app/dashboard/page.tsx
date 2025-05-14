@@ -12,15 +12,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/lib/auth-context"
-import { products } from "@/lib/placeholder-data"
-import { Search, Star, Plus, Bell } from "lucide-react"
+import { Search, Plus, Bell } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import ProductService, { type Product } from "@/lib/product-service"
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
-  const [filteredProducts, setFilteredProducts] = useState(products)
+  const [products, setProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState([
     {
       id: "1",
@@ -40,23 +42,42 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Redirect if not logged in
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.push("/login")
+      return
     }
-  }, [user, loading, router])
+
+    // Fetch products
+    const fetchProducts = async () => {
+      try {
+        const data = await ProductService.getProducts()
+        setProducts(data)
+        setFilteredProducts(data)
+        setLoading(false)
+      } catch (error) {
+        console.error("Error fetching products:", error)
+        toast.error("Failed to load products")
+        setLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchProducts()
+    }
+  }, [user, authLoading, router])
 
   useEffect(() => {
     if (searchQuery) {
       const filtered = products.filter(
         (product) =>
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.category.toLowerCase().includes(searchQuery.toLowerCase()),
+          product.description.toLowerCase().includes(searchQuery.toLowerCase()),
       )
       setFilteredProducts(filtered)
     } else {
       setFilteredProducts(products)
     }
-  }, [searchQuery])
+  }, [searchQuery, products])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,9 +89,9 @@ export default function DashboardPage() {
     toast.success("All notifications marked as read")
   }
 
-  if (loading || !user) {
+  if (authLoading || !user) {
     return (
-      <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)]">
+      <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] ">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Loading...</h2>
           <p className="text-muted-foreground">Please wait while we load your dashboard</p>
@@ -80,11 +101,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-8 px-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.name}! Manage your products and analyze prices.</p>
+          <p className="text-muted-foreground">
+            Welcome back, {user.first_name || user.email}! Manage your products and analyze prices.
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -127,46 +150,66 @@ export default function DashboardPage() {
               </form>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => (
-                    <Link href={`/dashboard/product/${product.id}`} key={product.id}>
-                      <Card className="overflow-hidden h-full transition-all hover:border-primary">
-                        <div className="aspect-video relative">
-                          <Image
-                            src={product.image || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-lg">{product.name}</CardTitle>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{product.category}</Badge>
-                            <div className="flex items-center ml-auto">
-                              <Star className="h-4 w-4 fill-primary text-primary" />
-                              <span className="text-sm ml-1">{product.rating}</span>
-                            </div>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <p className="text-muted-foreground">Loading products...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.map((product) => (
+                      <Link href={`/dashboard/product/${product.id}`} key={product.id}>
+                        <Card className="overflow-hidden h-full transition-all hover:border-primary">
+                          <div className="aspect-video relative">
+                            {product.image_url.startsWith("http") ? (
+                              <Image
+                                src={product.image_url || "/placeholder.svg"}
+                                alt={product.name}
+                                fill
+                                className="object-cover"
+                                unoptimized={!product.image_url.includes("placeholder.svg")}
+                              />
+                            ) : (
+                              <Image
+                                src={`/abstract-geometric-shapes.png?height=200&width=200&query=${encodeURIComponent(product.name)}`}
+                                alt={product.name}
+                                fill
+                                className="object-cover"
+                              />
+                            )}
                           </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
-                            <div className="text-sm text-muted-foreground">
-                              Min: ${product.minPrice.toFixed(2)} | Max: ${product.maxPrice.toFixed(2)}
+                          <CardHeader className="p-4">
+                            <CardTitle className="text-lg">{product.name}</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={product.is_active ? "default" : "secondary"}>
+                                {product.is_active ? "Active" : "Inactive"}
+                              </Badge>
+                              <Badge variant="outline">Qty: {product.quantity}</Badge>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-8">
-                    <p className="text-muted-foreground">No products found</p>
-                  </div>
-                )}
-              </div>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-0">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
+                              <div className="text-sm text-muted-foreground">
+                                Added: {new Date(product.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8">
+                      <p className="text-muted-foreground">No products found</p>
+                      <Button asChild className="mt-4">
+                        <Link href="/dashboard/add-product">
+                          <Plus className="mr-2 h-4 w-4" /> Add Your First Product
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -214,4 +257,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

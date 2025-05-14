@@ -8,12 +8,11 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <ThemeProvider defaultTheme="light" storageKey="theme">
+    <ThemeProvider defaultTheme="light" storageKey="theme">
+      <AuthProvider>
         {children}
         <Toaster position="top-right" />
-      </ThemeProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
-

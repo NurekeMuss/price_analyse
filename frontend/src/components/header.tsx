@@ -4,15 +4,23 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Menu, X } from "lucide-react"
-import { useState } from "react"
+import { Menu, X, UserIcon, ShieldAlert } from "lucide-react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
 
   const routes = [
     {
@@ -53,22 +61,27 @@ export function Header() {
         },
       ]
 
-  const adminRoutes =
-    user?.role === "admin"
-      ? [
-          {
-            href: "/admin",
-            label: "Admin Panel",
-            active: pathname === "/admin",
-          },
-        ]
-      : []
+  const adminRoutes = isAdmin()
+    ? [
+        {
+          href: "/admin",
+          label: "Admin Panel",
+          active: pathname === "/admin",
+          icon: <ShieldAlert className="h-4 w-4 mr-2" />,
+        },
+      ]
+    : []
 
-  const allRoutes = [...routes, ...authRoutes, ...adminRoutes]
+  const navRoutes = [...routes, ...authRoutes]
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [pathname])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-16 items-center justify-between px-8">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold">PriceBot</span>
@@ -76,7 +89,8 @@ export function Header() {
         </div>
 
         <nav className="hidden md:flex items-center gap-6">
-          {allRoutes.map((route) => (
+          {/* Regular navigation links */}
+          {routes.map((route) => (
             <Link
               key={route.href}
               href={route.href}
@@ -88,11 +102,92 @@ export function Header() {
               {route.label}
             </Link>
           ))}
-          {user && (
-            <Button variant="ghost" onClick={logout}>
-              Logout
-            </Button>
+
+          {/* Auth-dependent links */}
+          {!user ? (
+            // Show login/register links if not logged in
+            <>
+              {authRoutes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    route.active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {route.label}
+                </Link>
+              ))}
+            </>
+          ) : (
+            // Show user menu if logged in
+            <>
+              {/* Dashboard and Chat links */}
+              {authRoutes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    route.active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {route.label}
+                </Link>
+              ))}
+
+              {/* Admin Panel link if admin */}
+              {adminRoutes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary flex items-center",
+                    route.active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {route.icon}
+                  {route.label}
+                </Link>
+              ))}
+
+              {/* User profile dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <UserIcon className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    {user.first_name || user.email}
+                    {isAdmin() && (
+                      <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-primary/20 text-primary">Admin</span>
+                    )}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  {isAdmin() && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">Admin Panel</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
+
           <ModeToggle />
         </nav>
 
@@ -106,7 +201,7 @@ export function Header() {
       {isMenuOpen && (
         <div className="container md:hidden py-4">
           <nav className="flex flex-col space-y-4">
-            {allRoutes.map((route) => (
+            {navRoutes.map((route) => (
               <Link
                 key={route.href}
                 href={route.href}
@@ -114,8 +209,20 @@ export function Header() {
                   "text-sm font-medium transition-colors hover:text-primary",
                   route.active ? "text-primary" : "text-muted-foreground",
                 )}
-                onClick={() => setIsMenuOpen(false)}
               >
+                {route.label}
+              </Link>
+            ))}
+            {adminRoutes.map((route) => (
+              <Link
+                key={route.href}
+                href={route.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-primary flex items-center",
+                  route.active ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                {route.icon}
                 {route.label}
               </Link>
             ))}
@@ -133,4 +240,3 @@ export function Header() {
     </header>
   )
 }
-

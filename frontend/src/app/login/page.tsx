@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
@@ -15,66 +15,46 @@ import { Lock, User } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { user, login } = useAuth()
 
   const [formData, setFormData] = useState({
-    login: "",
+    email: "",
     password: "",
   })
 
-  const [step, setStep] = useState(1)
-  const [verificationCode, setVerificationCode] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard")
+    }
+  }, [user, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmitStep1 = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validation
-    if (!formData.login || !formData.password) {
-      toast.error("Username and password are required")
-      return
-    }
-
-    // Simulate sending verification code
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setLoading(false)
-
-    // Move to step 2
-    setStep(2)
-
-    toast.success("Verification code sent. Please check your email for the verification code. (Use '123456' for demo)")
-  }
-
-  const handleSubmitStep2 = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!verificationCode) {
-      toast.error("Verification code is required")
-      return
-    }
-
-    // For demo purposes, accept any code
-    if (verificationCode !== "123456") {
-      toast.error("Invalid verification code")
+    if (!formData.email || !formData.password) {
+      toast.error("Email and password are required")
       return
     }
 
     setLoading(true)
 
     try {
-      const success = await login(formData.login, formData.password)
+      const success = await login(formData.email, formData.password)
 
       if (success) {
         toast.success("Login successful. Welcome back!")
         router.push("/dashboard")
       } else {
-        toast.error("Login failed. Invalid username or password")
+        toast.error("Login failed. Invalid email or password")
       }
     } catch (error) {
       toast.error("Login failed. There was an error logging in")
@@ -91,75 +71,52 @@ export default function LoginPage() {
           <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 1 ? (
-            <form onSubmit={handleSubmitStep1} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="login">Username</Label>
-                <Input
-                  id="login"
-                  name="login"
-                  placeholder="johndoe"
-                  value={formData.login}
-                  onChange={handleChange}
-                  required
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="john.doe@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
+                <Label
+                  htmlFor="remember"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Remember me
+                </Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="remember"
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <Label
-                    htmlFor="remember"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Remember me
-                  </Label>
-                </div>
-                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : "Continue"}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmitStep2} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="verificationCode">Verification Code</Label>
-                <Input
-                  id="verificationCode"
-                  placeholder="123456"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  required
-                />
-                <p className="text-sm text-muted-foreground">
-                  Enter the verification code sent to your email. (Use '123456' for demo)
-                </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : "Sign In"}
-              </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)} disabled={loading}>
-                Back
-              </Button>
-            </form>
-          )}
+              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="relative">
@@ -191,4 +148,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

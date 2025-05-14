@@ -4,26 +4,22 @@ import type React from "react"
 
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-
-type User = {
-  id: string
-  name: string
-  surname: string
-  login: string
-  role: "user" | "admin"
-}
+import AuthService, { type User, type LoginData, type RegisterData } from "./auth-service"
+import UserService from "./user-service"
+import toast from "react-hot-toast"
 
 type AuthContextType = {
   user: User | null
-  login: (login: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<boolean>
   register: (data: {
-    login: string
+    email: string
     password: string
-    name: string
-    surname: string
+    first_name: string
+    last_name: string
   }) => Promise<boolean>
   logout: () => void
   loading: boolean
+  isAdmin: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -33,87 +29,125 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  // Simulate checking for existing session
+  // Check for existing session on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const checkAuth = async () => {
+      setLoading(true)
+      try {
+        // Check if we have a token
+        if (AuthService.isAuthenticated()) {
+          const userData = await AuthService.getCurrentUser()
+          if (userData) {
+            setUser(userData)
+          } else {
+            // If we have a token but can't get user data, tokens might be invalid
+            await AuthService.logout()
+          }
+        }
+      } catch (error) {
+        console.error("Auth check error:", error)
+      } finally {
+        setLoading(false)
+      }
     }
-    setLoading(false)
+
+    checkAuth()
   }, [])
 
-  // Simulate login
-  const login = async (login: string, password: string) => {
+  // Modify the login function to not store user in localStorage
+  const login = async (email: string, password: string) => {
     setLoading(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Demo users
-    if (login === "user" && password === "password") {
-      const user = {
-        id: "1",
-        name: "John",
-        surname: "Doe",
-        login: "user",
-        role: "user" as const,
+    try {
+      const loginData: LoginData = {
+        username: email, // API expects username field but uses email
+        password,
       }
-      setUser(user)
-      localStorage.setItem("user", JSON.stringify(user))
-      setLoading(false)
-      return true
-    } else if (login === "admin" && password === "password") {
-      const admin = {
-        id: "2",
-        name: "Admin",
-        surname: "User",
-        login: "admin",
-        role: "admin" as const,
+
+      const authResponse = await AuthService.login(loginData)
+
+      if (authResponse.access_token) {
+        // Fetch the user data after successful login
+        const userData = await AuthService.getCurrentUser()
+        if (userData) {
+          setUser(userData)
+          setLoading(false)
+          return true
+        } else {
+          // If we couldn't get user data, create a basic user object
+          // This is a fallback in case the API doesn't return user_id or the getCurrentUser fails
+          const basicUser: User = {
+            id: 0,
+            email: email,
+            first_name: "",
+            last_name: "",
+            role: "user",
+            is_blocked: false,
+            created_at: new Date().toISOString(),
+          }
+          setUser(basicUser)
+          setLoading(false)
+          return true
+        }
       }
-      setUser(admin)
-      localStorage.setItem("user", JSON.stringify(admin))
+
+      throw new Error("Failed to get access token")
+    } catch (error) {
+      console.error("Login error:", error)
       setLoading(false)
-      return true
+      return false
     }
-
-    setLoading(false)
-    return false
   }
 
-  // Simulate registration
+  // Register function
   const register = async (data: {
-    login: string
+    email: string
     password: string
-    name: string
-    surname: string
+    first_name: string
+    last_name: string
   }) => {
     setLoading(true)
+    try {
+      const registerData: RegisterData = {
+        email: data.email,
+        password_hash: data.password, // API expects password_hash
+        first_name: data.first_name,
+        last_name: data.last_name,
+        role: "user", // Default role
+      }
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+      await AuthService.register(registerData)
 
-    const newUser = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: data.name,
-      surname: data.surname,
-      login: data.login,
-      role: "user" as const,
+      // After registration, log the user in
+      const loginSuccess = await login(data.email, data.password)
+      return loginSuccess
+    } catch (error) {
+      console.error("Registration error:", error)
+      setLoading(false)
+      return false
     }
-
-    setUser(newUser)
-    localStorage.setItem("user", JSON.stringify(newUser))
-    setLoading(false)
-    return true
   }
 
-  // Logout
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
-    router.push("/")
+  // Modify the logout function to not clear user from localStorage
+  const logout = async () => {
+    try {
+      await AuthService.logout()
+      setUser(null)
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+      toast.error("Error during logout")
+    }
   }
 
-  return <AuthContext.Provider value={{ user, login, register, logout, loading }}>{children}</AuthContext.Provider>
+  // Check if the current user is an admin
+  const isAdmin = () => {
+    if (!user) return false
+    return user.role === "admin" || UserService.isAdmin()
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout, loading, isAdmin }}>{children}</AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
@@ -123,4 +157,3 @@ export function useAuth() {
   }
   return context
 }
-

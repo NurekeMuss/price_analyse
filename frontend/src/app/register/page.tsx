@@ -18,15 +18,13 @@ export default function RegisterPage() {
   const { register } = useAuth()
 
   const [formData, setFormData] = useState({
-    login: "",
+    email: "",
     password: "",
     confirmPassword: "",
-    name: "",
-    surname: "",
+    first_name: "",
+    last_name: "",
   })
 
-  const [step, setStep] = useState(1)
-  const [verificationCode, setVerificationCode] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,11 +32,17 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmitStep1 = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validation
-    if (!formData.login || !formData.password || !formData.confirmPassword || !formData.name || !formData.surname) {
+    if (
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword ||
+      !formData.first_name ||
+      !formData.last_name
+    ) {
       toast.error("All fields are required")
       return
     }
@@ -48,35 +52,15 @@ export default function RegisterPage() {
       return
     }
 
-    // Simulate sending verification code
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setLoading(false)
-
-    // Move to step 2
-    setStep(2)
-
-    toast.success("Verification code sent. Please check your email for the verification code. (Use '123456' for demo)")
-  }
-
-  const handleSubmitStep2 = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!verificationCode) {
-      toast.error("Verification code is required")
-      return
-    }
-
-    // For demo purposes, accept any code
-    if (verificationCode !== "123456") {
-      toast.error("Invalid verification code")
-      return
-    }
-
     setLoading(true)
 
     try {
-      const success = await register(formData)
+      const success = await register({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+      })
 
       if (success) {
         toast.success("Registration successful. Your account has been created")
@@ -99,92 +83,69 @@ export default function RegisterPage() {
           <CardDescription className="text-center">Enter your information to create an account</CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 1 ? (
-            <form onSubmit={handleSubmitStep1} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">First name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    placeholder="John"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="surname">Last name</Label>
-                  <Input
-                    id="surname"
-                    name="surname"
-                    placeholder="Doe"
-                    value={formData.surname}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="login">Username</Label>
+                <Label htmlFor="first_name">First name</Label>
                 <Input
-                  id="login"
-                  name="login"
-                  placeholder="johndoe"
-                  value={formData.login}
+                  id="first_name"
+                  name="first_name"
+                  placeholder="John"
+                  value={formData.first_name}
                   onChange={handleChange}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="last_name">Last name</Label>
                 <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
+                  id="last_name"
+                  name="last_name"
+                  placeholder="Doe"
+                  value={formData.last_name}
                   onChange={handleChange}
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : "Continue"}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmitStep2} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="verificationCode">Verification Code</Label>
-                <Input
-                  id="verificationCode"
-                  placeholder="123456"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  required
-                />
-                <p className="text-sm text-muted-foreground">
-                  Enter the verification code sent to your email. (Use '123456' for demo)
-                </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : "Create Account"}
-              </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)} disabled={loading}>
-                Back
-              </Button>
-            </form>
-          )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="john.doe@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Creating account..." : "Create Account"}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="relative">
@@ -216,4 +177,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-
