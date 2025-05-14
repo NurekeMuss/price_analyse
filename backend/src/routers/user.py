@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.db.database import get_db
 from src.dependencies.user import get_user_service
+from src.dependencies.auth import get_current_user
 from src.schemas import UserCreate, UserInDB, UserUpdate
 from src.services import UserService
 
@@ -41,6 +42,17 @@ async def get_user_by_id(
     Retrieve a user by ID.
     """
     return await user_service.get_user_by_id(db=db, user_id=user_id)
+
+@router.get("/me", response_model=UserInDB)
+async def get_user_by_id(
+    db: AsyncSession = Depends(get_db),
+    user_service: UserService = Depends(get_user_service),
+    user = Depends(get_current_user) 
+) -> UserInDB:
+    """
+    Retrieve a user by ID.
+    """
+    return await user_service.get_user_by_id(db=db, user_id=user.id)
 
 @router.put("/{user_id}", response_model=UserInDB)
 async def update_user(
