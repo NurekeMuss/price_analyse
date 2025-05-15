@@ -63,7 +63,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-8 px-8">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-2">
           <Link href="/dashboard">

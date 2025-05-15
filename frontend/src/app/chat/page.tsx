@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
-import { Send, Bot, User, X, Edit, Trash2 } from "lucide-react"
+import { Send, Bot, User, X, Edit, Trash2, DollarSign } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import ProductService, { type Product } from "@/lib/product-service"
+import ProductService, { type Product, type UpdateProductData } from "@/lib/product-service"
 import Image from "next/image"
 import {
   AlertDialog,
@@ -24,6 +24,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 
 type Message = {
   id: string
@@ -61,6 +72,16 @@ export default function ChatPage() {
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editFormData, setEditFormData] = useState<UpdateProductData>({
+    name: "",
+    description: "",
+    price: 0,
+    quantity: 0,
+    is_active: true,
+    image_url: "",
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     // Redirect if not logged in
@@ -118,6 +139,16 @@ export default function ChatPage() {
   const processUserMessage = (message: string) => {
     const lowerMessage = message.toLowerCase()
 
+    // Check for product listing intent
+    if (lowerMessage.includes("list") && (lowerMessage.includes("product") || lowerMessage.includes("item"))) {
+      if (userProducts.length === 0) {
+        addBotMessage("You don't have any products yet. Would you like to add a product?")
+      } else {
+        addBotMessage("Here are your products. You can edit or delete them:", userProducts)
+      }
+      return
+    }
+
     // Check for product deletion intent
     if (lowerMessage.includes("delete") && (lowerMessage.includes("product") || lowerMessage.includes("item"))) {
       if (userProducts.length === 0) {
@@ -155,6 +186,15 @@ export default function ChatPage() {
     }
 
     if (lowerMessage.includes("edit") || lowerMessage.includes("update")) {
+      if (lowerMessage.includes("information") || lowerMessage.includes("details")) {
+        if (userProducts.length === 0) {
+          addBotMessage("You don't have any products to edit. Would you like to add a product first?")
+        } else {
+          addBotMessage("Which product would you like to edit? Here are your products:", userProducts)
+        }
+        return
+      }
+
       const productMatches = userProducts.filter((p) => lowerMessage.includes(p.name.toLowerCase()))
 
       if (productMatches.length > 0) {
@@ -260,12 +300,6 @@ export default function ChatPage() {
       addBotMessage(
         "Based on current market trends, I recommend reviewing the prices of your electronics products. Some of your products could benefit from a slight price increase as competitor prices have risen by 3% on average.",
       )
-    } else if (lowerMessage.includes("list") && lowerMessage.includes("product")) {
-      if (userProducts.length === 0) {
-        addBotMessage("You don't have any products yet. Would you like to add a product?")
-      } else {
-        addBotMessage("Here are your products:", userProducts)
-      }
     } else {
       addBotMessage(
         "I'm not sure how to help with that. You can ask me to update product information, change prices, or delete products from your catalog.",
@@ -273,7 +307,7 @@ export default function ChatPage() {
     }
   }
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (!pendingAction) return
 
     switch (pendingAction.type) {
@@ -287,11 +321,29 @@ export default function ChatPage() {
 
       case "price":
         if (pendingAction.newPrice) {
-          // In a real app, you would update the product price here
-          addBotMessage(
-            `Price for "${pendingAction.productName}" has been updated from $${pendingAction.currentPrice!.toFixed(2)} to $${pendingAction.newPrice.toFixed(2)}.`,
-          )
-          toast.success(`${pendingAction.productName} price has been changed to $${pendingAction.newPrice.toFixed(2)}.`)
+          try {
+            // Use ProductService to update the product price
+            await ProductService.updateProduct(Number(pendingAction.productId), {
+              price: pendingAction.newPrice,
+            })
+
+            addBotMessage(
+              `Price for "${pendingAction.productName}" has been updated from $${pendingAction.currentPrice!.toFixed(2)} to $${pendingAction.newPrice.toFixed(2)}.`,
+            )
+            toast.success(
+              `${pendingAction.productName} price has been changed to $${pendingAction.newPrice.toFixed(2)}.`,
+            )
+
+            // Refresh the products list
+            const updatedProducts = await ProductService.getProducts()
+            setUserProducts(updatedProducts)
+          } catch (error) {
+            console.error("Error updating product price:", error)
+            addBotMessage(
+              `Sorry, there was an error updating the price for "${pendingAction.productName}". Please try again.`,
+            )
+            toast.error("Failed to update product price")
+          }
         } else {
           addBotMessage(
             `Please specify the new price for "${pendingAction.productName}". The current price is $${pendingAction.currentPrice!.toFixed(2)}.`,
@@ -319,6 +371,73 @@ export default function ChatPage() {
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product)
     setIsDeleteDialogOpen(true)
+  }
+
+  const handleEditClick = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation() // Prevent triggering the delete dialog
+    setSelectedProduct(product)
+    setEditFormData({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      quantity: product.quantity,
+      is_active: product.is_active,
+      image_url: product.image_url,
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handlePriceClick = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation() // Prevent triggering the delete dialog
+    setPendingAction({
+      type: "price",
+      productId: product.id,
+      productName: product.name,
+      currentPrice: product.price,
+    })
+    addBotMessage(
+      `What price would you like to set for "${product.name}"? The current price is $${product.price.toFixed(2)}.`,
+    )
+  }
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: name === "price" || name === "quantity" ? Number(value) : value,
+    }))
+  }
+
+  const handleSwitchChange = (checked: boolean) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      is_active: checked,
+    }))
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedProduct) return
+
+    setIsSubmitting(true)
+
+    try {
+      await ProductService.updateProduct(selectedProduct.id, editFormData)
+
+      // Refresh the products list
+      const updatedProducts = await ProductService.getProducts()
+      setUserProducts(updatedProducts)
+
+      toast.success(`${selectedProduct.name} has been updated successfully.`)
+      addBotMessage(`"${selectedProduct.name}" has been updated successfully.`)
+
+      setIsEditDialogOpen(false)
+      setSelectedProduct(null)
+    } catch (error) {
+      console.error("Error updating product:", error)
+      toast.error("Failed to update product")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleDeleteProduct = async (productId: number) => {
@@ -356,7 +475,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="container py-12 px-8">
+    <div className="container py-8 px-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <Card className="h-[calc(100vh-12rem)]">
@@ -387,14 +506,13 @@ export default function ChatPage() {
                         >
                           <p className="text-sm">{message.text}</p>
 
-                          {/* Product list for deletion */}
+                          {/* Product list with edit and delete buttons */}
                           {message.products && message.products.length > 0 && (
                             <div className="mt-3 space-y-2">
                               {message.products.map((product) => (
                                 <div
                                   key={product.id}
-                                  className="flex items-center gap-2 p-2 rounded-md bg-background hover:bg-accent cursor-pointer transition-colors"
-                                  onClick={() => handleProductClick(product)}
+                                  className="flex items-center gap-2 p-2 rounded-md bg-background hover:bg-accent transition-colors"
                                 >
                                   <div className="h-10 w-10 relative rounded-md overflow-hidden">
                                     <Image
@@ -413,9 +531,32 @@ export default function ChatPage() {
                                       ${product.price.toFixed(2)} - Qty: {product.quantity}
                                     </p>
                                   </div>
-                                  <Button variant="ghost" size="icon" className="text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-primary"
+                                      onClick={(e) => handlePriceClick(e, product)}
+                                    >
+                                      <DollarSign className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-primary"
+                                      onClick={(e) => handleEditClick(e, product)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-destructive"
+                                      onClick={() => handleProductClick(product)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -445,7 +586,7 @@ export default function ChatPage() {
                   <div className="flex items-center">
                     {pendingAction.type === "delete" && <Trash2 className="h-4 w-4 mr-2 text-destructive" />}
                     {pendingAction.type === "edit" && <Edit className="h-4 w-4 mr-2 text-primary" />}
-                    {pendingAction.type === "price" && <Edit className="h-4 w-4 mr-2 text-primary" />}
+                    {pendingAction.type === "price" && <DollarSign className="h-4 w-4 mr-2 text-primary" />}
                     <span className="text-sm">
                       {pendingAction.type === "delete" && `Delete "${pendingAction.productName}"`}
                       {pendingAction.type === "edit" && `Edit "${pendingAction.productName}"`}
@@ -475,12 +616,12 @@ export default function ChatPage() {
         </div>
 
         <div className="hidden md:block">
-          <Card className="h-[calc(100vh-12rem)]">
+          <Card>
             <CardHeader>
               <CardTitle>Suggestions</CardTitle>
               <CardDescription>Try asking the bot about these topics</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 overflow-y-auto max-h-[calc(100vh-20rem)]">
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Product Management</h3>
                 <div className="grid gap-2">
@@ -504,9 +645,17 @@ export default function ChatPage() {
                     variant="outline"
                     size="sm"
                     className="justify-start w-full text-left font-normal"
-                    onClick={() => setInput("Update product price")}
+                    onClick={() => setInput("Edit product information")}
                   >
-                    Update product price
+                    Edit product information
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start w-full text-left font-normal"
+                    onClick={() => setInput("Change product price")}
+                  >
+                    Change product price
                   </Button>
                 </div>
               </div>
@@ -537,6 +686,28 @@ export default function ChatPage() {
                     onClick={() => setInput("Compare with competitors")}
                   >
                     Compare with competitors
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Help & Support</h3>
+                <div className="grid gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start w-full text-left font-normal"
+                    onClick={() => setInput("What can you help me with?")}
+                  >
+                    What can you help me with?
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start w-full text-left font-normal"
+                    onClick={() => setInput("How do I add a new product?")}
+                  >
+                    How do I add a new product?
                   </Button>
                 </div>
               </div>
@@ -572,6 +743,84 @@ export default function ChatPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+            <DialogDescription>Make changes to your product information here.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" value={editFormData.name} onChange={handleEditFormChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={editFormData.description}
+                onChange={handleEditFormChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="price">Price</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5">$</span>
+                  <Input
+                    id="price"
+                    name="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editFormData.price}
+                    onChange={handleEditFormChange}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  name="quantity"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={editFormData.quantity}
+                  onChange={handleEditFormChange}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="image_url">Image URL</Label>
+              <Input
+                id="image_url"
+                name="image_url"
+                value={editFormData.image_url}
+                onChange={handleEditFormChange}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="is_active" checked={editFormData.is_active} onCheckedChange={handleSwitchChange} />
+              <Label htmlFor="is_active">Active Product</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

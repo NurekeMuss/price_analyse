@@ -63,15 +63,10 @@ const AuthService = {
         },
       })
 
-      // Store tokens
-      const { access_token, refresh_token, user_id } = response.data
+      // Store tokens only
+      const { access_token, refresh_token } = response.data
       localStorage.setItem("access_token", access_token)
       localStorage.setItem("refresh_token", refresh_token)
-
-      // Store user_id if it's in the response
-      if (user_id) {
-        localStorage.setItem("user_id", user_id.toString())
-      }
 
       return response.data
     } catch (error) {
@@ -97,40 +92,26 @@ const AuthService = {
     } catch (error) {
       console.error("Logout error:", error)
     } finally {
-      // Clear tokens and user data regardless of API response
+      // Clear tokens only
       localStorage.removeItem("access_token")
       localStorage.removeItem("refresh_token")
-      localStorage.removeItem("user")
-      localStorage.removeItem("user_id")
     }
   },
 
+  // Update to use the correct endpoint
   async getCurrentUser(): Promise<User | null> {
     try {
-      // Get user_id from localStorage
-      const userId = localStorage.getItem("user_id")
-
-      if (!userId) {
-        console.error("No user ID found in localStorage")
+      // Check if we have a token
+      const token = localStorage.getItem("access_token")
+      if (!token) {
         return null
       }
 
-      // Get user from API using the numeric ID
-      const response = await axiosInstance.get(`/users/${userId}`)
-
-      // Store user data in localStorage for offline access
-      localStorage.setItem("user", JSON.stringify(response.data))
-
+      // Get current user from API using the correct endpoint
+      const response = await axiosInstance.get("/users/get_me")
       return response.data
     } catch (error) {
       console.error("Get current user error:", error)
-
-      // If API call fails, try to get from localStorage as fallback
-      const userJson = localStorage.getItem("user")
-      if (userJson) {
-        return JSON.parse(userJson)
-      }
-
       return null
     }
   },
