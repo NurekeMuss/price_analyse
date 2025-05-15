@@ -3,7 +3,9 @@ from src.core.db.database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.schemas import product, user
-from src.dependencies import auth, product as product_dep
+from src.dependencies import auth, product as product_dep, price
+from src.ml import optimalprice, potd
+from src.dependencies import potd as potd_dep
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -79,3 +81,32 @@ async def delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+@router.post("/recommend_price")
+async def recommend_price(
+    product: product.ProductForPriceRecommendation,
+    predictor: optimalprice.PricePredictor = Depends(price.get_price_predictor),
+    auth: user.UserInDB = Depends(auth.get_current_user),
+):
+    """
+    Recommend an optimal price for the given product.
+    """
+    try:
+        price = predictor.recommend_price(product.dict())
+        return {"recommended_price": round(price, 2)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
+
+@router.get("/product_of_the_day")
+async def get_product_of_the_day(
+    classifier: potd.ProductOfTheDayClassifier = Depends(potd_dep.get_product_of_the_day_classifier),
+    auth: user.UserInDB = Depends(auth.get_current_user),
+):
+    """
+    Return products classified as "product of the day".
+    """
+    try:
+        products = classifier.get_product_of_the_day()
+        return {"count": len(products), "products": products}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
