@@ -25,3 +25,4 @@ typing_extensions==4.13.2
 uvicorn==0.34.2
 xgboost==3.0.1
 seaborn==0.13.2
+scikit-learn==1.6.1

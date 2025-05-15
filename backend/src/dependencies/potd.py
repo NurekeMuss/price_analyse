@@ -1,6 +1,6 @@
-from src.ml.potd import ProductOfTheDayClassifier
+from src.ml.potd import ProductsOfTheDayClassifier
 
-_classifier = ProductOfTheDayClassifier('./backend/src/ml/train_data/mock_products.csv')
+_classifier = ProductsOfTheDayClassifier('./src/ml/train_data/mock_products.csv')
 
-def get_product_of_the_day_classifier() -> ProductOfTheDayClassifier:
+def get_products_of_the_day_classifier() -> ProductsOfTheDayClassifier:
     return _classifier

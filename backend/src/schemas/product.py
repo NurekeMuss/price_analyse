@@ -28,10 +28,3 @@ class ProductInDB(ProductBase):
 
     class Config:
         orm_mode = True
-
-class ProductForPriceRecommendation(BaseModel):
-    name: str
-    description: str
-    quantity: int
-    is_active: bool
-    image_url: str

@@ -82,31 +82,35 @@ async def delete_product(
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.post("/recommend_price")
-async def recommend_price(
-    product: product.ProductForPriceRecommendation,
+@router.get("/ml/recommend_price/{product_id}")
+async def recommend_price_by_id(
+    product_id: int,
     predictor: optimalprice.PricePredictor = Depends(price.get_price_predictor),
     auth: user.UserInDB = Depends(auth.get_current_user),
 ):
     """
-    Recommend an optimal price for the given product.
+    Recommend an optimal price for a product by ID from mock data.
     """
     try:
-        price = predictor.recommend_price(product.dict())
-        return {"recommended_price": round(price, 2)}
+        product_data = predictor.get_product_by_id(product_id)
+        price_value = predictor.recommend_price(product_data)
+        return {"recommended_price": round(price_value, 2)}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
 
-@router.get("/product_of_the_day")
-async def get_product_of_the_day(
-    classifier: potd.ProductOfTheDayClassifier = Depends(potd_dep.get_product_of_the_day_classifier),
+
+@router.get("/ml/products_of_the_day")
+async def get_products_of_the_day(
+    classifier: potd.ProductsOfTheDayClassifier = Depends(potd_dep.get_products_of_the_day_classifier),
     auth: user.UserInDB = Depends(auth.get_current_user),
 ):
     """
-    Return products classified as "product of the day".
+    Return products classified as "products of the day".
     """
     try:
-        products = classifier.get_product_of_the_day()
+        products = classifier.get_products_of_the_day()
         return {"count": len(products), "products": products}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")

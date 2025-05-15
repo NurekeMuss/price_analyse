@@ -1,14 +1,14 @@
 from .base import TableBase
 
-from sqlalchemy import Boolean, Column, String, Float, Integer
+from sqlalchemy import Boolean, Column, String, Float, Integer, TEXT
 
 
 class ProductTable(TableBase):
     __tablename__ = "product"
 
-    name = Column(String(50), unique=True, index=True)
-    description = Column(String(256))
+    name = Column(String(50), index=True)
+    description = Column(TEXT)
     price = Column(Float)
     quantity = Column(Integer)
     is_active = Column(Boolean, default=True)
-    image_url = Column(String(256))
+    image_url = Column(TEXT)

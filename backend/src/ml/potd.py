@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 
-class ProductOfTheDayClassifier:
+class ProductsOfTheDayClassifier:
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -43,7 +43,7 @@ class ProductOfTheDayClassifier:
         self.model.fit(X, y)
         self.df = df
 
-    def get_product_of_the_day(self):
+    def get_products_of_the_day(self):
         X_all = self.df[self.features]
         self.df['prediction'] = self.model.predict(X_all)
         top_products = self.df[self.df['prediction'] == 1]

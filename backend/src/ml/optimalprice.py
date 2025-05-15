@@ -43,6 +43,13 @@ class PricePredictor:
                 best_score = r2
                 self.best_model = model
 
+    def get_product_by_id(self, product_id: int) -> dict:
+        df = pd.read_csv(self.csv_path)
+        product_row = df[df['id'] == product_id]
+        if product_row.empty:
+            raise ValueError(f"Product with ID {product_id} not found")
+        return product_row.iloc[0].to_dict()
+
     def recommend_price(self, sample: dict) -> float:
         sample_df = pd.DataFrame([sample])
         sample_df['description_length'] = sample_df['description'].apply(len)
