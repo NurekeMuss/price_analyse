@@ -32,6 +32,18 @@ async def get_all_users(
     """
     return await user_service.get_all_users(db=db, skip=skip, limit=limit)
 
+
+@router.get("/get_me", response_model=UserInDB)
+async def get_user_me(
+    db: AsyncSession = Depends(get_db),
+    user_service: UserService = Depends(get_user_service),
+    user: UserInDB = Depends(get_current_user) 
+) -> UserInDB:
+    """
+    Retrieve a user by ID.
+    """
+    return user
+
 @router.get("/{user_id}", response_model=UserInDB)
 async def get_user_by_id(
     user_id: int,
@@ -43,16 +55,6 @@ async def get_user_by_id(
     """
     return await user_service.get_user_by_id(db=db, user_id=user_id)
 
-@router.get("/me", response_model=UserInDB)
-async def get_user_me(
-    db: AsyncSession = Depends(get_db),
-    user_service: UserService = Depends(get_user_service),
-    user = Depends(get_current_user) 
-) -> UserInDB:
-    """
-    Retrieve a user by ID.
-    """
-    return await user_service.get_user_by_id(db=db, user_id=user.id)
 
 @router.put("/{user_id}", response_model=UserInDB)
 async def update_user(
