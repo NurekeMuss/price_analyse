@@ -1,2 +1,2 @@
-from .user import UserRepository
-from .product import ProductRepository
+from .user import UserRepository  # noqa: F401
+from .product import ProductRepository  # noqa: F401

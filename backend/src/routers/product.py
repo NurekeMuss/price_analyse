@@ -9,6 +9,7 @@ from src.dependencies import potd as potd_dep
 
 router = APIRouter(prefix="/products", tags=["products"])
 
+
 @router.post("/", response_model=product.ProductInDB)
 async def create_product(
     product_in: product.ProductCreate,
@@ -21,6 +22,7 @@ async def create_product(
     """
     product = await product_service.create_product(db, product_in)
     return product
+
 
 @router.get("/", response_model=list[product.ProductInDB])
 async def get_products(
@@ -36,6 +38,7 @@ async def get_products(
     products = await product_service.get_all_products(db)
     return products
 
+
 @router.get("/{product_id}", response_model=product.ProductInDB)
 async def get_product(
     product_id: int,
@@ -50,6 +53,7 @@ async def get_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
 
 @router.put("/{product_id}", response_model=product.ProductInDB)
 async def update_product(
@@ -67,6 +71,7 @@ async def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
+
 @router.delete("/{product_id}", response_model=product.ProductInDB)
 async def delete_product(
     product_id: int,
@@ -81,6 +86,7 @@ async def delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
 
 @router.get("/ml/recommend_price/{product_id}")
 async def recommend_price_by_id(

@@ -1,2 +1,2 @@
-from .user import UserTable
-from .product import ProductTable
+from .user import UserTable  # noqa: F401
+from .product import ProductTable  # noqa: F401

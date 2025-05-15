@@ -30,6 +30,7 @@ engine = create_async_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 Base = declarative_base()
 
+
 async def init_db():
     """
     Initializes the database by creating all tables and populating with mock data.
@@ -54,6 +55,7 @@ async def init_db():
 
     except Exception as e:
         logger.error(f"Error initializing database: {e}")
+
 
 async def get_db():
     async with SessionLocal() as session:

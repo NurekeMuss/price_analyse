@@ -1,6 +1,4 @@
 import logging
-import os
-from logging.handlers import SysLogHandler
 
 from src.core.config import get_backend_config
 

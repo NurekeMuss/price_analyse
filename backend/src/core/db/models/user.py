@@ -10,5 +10,5 @@ class UserTable(TableBase):
     first_name = Column(String(50))
     last_name = Column(String(50))
     password_hash = Column(String(256))
-    role = Column(String(10)) # admin or user
+    role = Column(String(10))  # admin or user
     is_blocked = Column(Boolean, default=False)

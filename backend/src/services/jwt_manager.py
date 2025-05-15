@@ -9,6 +9,7 @@ from src.core.db.models import UserTable
 
 logger = get_logger(__name__)
 
+
 class JWTManager:
     def __init__(self, secret_key: str, algorithm: str, access_expiry: int, refresh_expiry: int):
         self.secret_key = secret_key

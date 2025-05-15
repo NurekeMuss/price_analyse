@@ -20,6 +20,7 @@ async def create_user(
     """
     return await user_service.create_user(db=db, user=user)
 
+
 @router.get("/", response_model=list[UserInDB])
 async def get_all_users(
     skip: int = 0,
@@ -37,12 +38,13 @@ async def get_all_users(
 async def get_user_me(
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
-    user: UserInDB = Depends(get_current_user) 
+    user: UserInDB = Depends(get_current_user)
 ) -> UserInDB:
     """
     Retrieve a user by ID.
     """
     return user
+
 
 @router.get("/{user_id}", response_model=UserInDB)
 async def get_user_by_id(
@@ -67,6 +69,7 @@ async def update_user(
     Update user information.
     """
     return await user_service.update_user(db=db, user_id=user_id, user_update=user_update)
+
 
 @router.delete("/{user_id}")
 async def delete_user(

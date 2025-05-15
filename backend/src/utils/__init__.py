@@ -1,1 +1,1 @@
-from .password_manager import PasswordManager
+from .password_manager import PasswordManager  # noqa: F401

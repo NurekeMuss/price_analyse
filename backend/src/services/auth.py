@@ -1,11 +1,10 @@
-from datetime import datetime
-
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.logger import get_logger
 from src.schemas import UserCreate
 from src.services import UserService
 from .jwt_manager import JWTManager
+
 logger = get_logger(__name__)
 
 
@@ -19,10 +18,10 @@ class AuthService:
         self.jwt_manager = jwt_manager
 
     async def register_user(
-            self, 
-            user_create: UserCreate, 
+            self,
+            user_create: UserCreate,
             db: AsyncSession
-        ):
+    ):
         """
         Register a new user with optional referral logic.
         """
@@ -34,22 +33,22 @@ class AuthService:
         return tokens
 
     async def authenticate_user(
-            self, 
-            email: str, 
-            password: str, 
+            self,
+            email: str,
+            password: str,
             db: AsyncSession
-        ):
+    ):
         """
         Authenticate user and return tokens or error response.
         """
         user = await self.user_service.get_user_by_email(db, email)
-        
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Incorrect email"
             )
-        
+
         if not self.user_service.password_manager.verify_password(password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -99,29 +98,28 @@ class AuthService:
     #     user = await self.user_service.get_user(db, payload["id"])
     #     hashed_password = self.password_manager.hash_password(new_password)
     #     await self.user_service.update_user(
-    #         db=db, 
+    #         db=db,
     #         db_obj=user,
     #         user_data={"password_hash": hashed_password}
     #     )
     #     return await self.jwt_manager.generate_tokens(user)
-    
-    
+
     async def verify_account(self, token: str, db: AsyncSession):
         payload = await self.jwt_manager.decode_token(token)
         user_id = payload.get("id")
         username = payload.get("sub")
         status_role = payload.get("role")
-        
+
         data = {
             "sub": username,
             "id": user_id,
             "role": status_role,
         }
-        
+
         user = await self.user_service.get_user_by_id(db, user_id)
         await self.user_service.update_user(db=db, db_obj=user, user_data={"blocked": False})
-        
+
         return await self.jwt_manager.generate_tokens_from_payload(data)
-    
+
     async def logout(self, token: str):
-        return {"message": "Logged out successfully"}   
+        return {"message": "Logged out successfully"}

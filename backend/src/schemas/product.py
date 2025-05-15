@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 
 class ProductBase(BaseModel):
@@ -11,8 +11,10 @@ class ProductBase(BaseModel):
     is_active: bool = Field(default=True)
     image_url: Optional[str] = None
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class ProductUpdate(ProductBase):
     name: Optional[str] = None
@@ -21,6 +23,7 @@ class ProductUpdate(ProductBase):
     price: Optional[float] = None
     is_active: Optional[bool] = None
     image_url: Optional[str] = None
+
 
 class ProductInDB(ProductBase):
     id: int

@@ -12,8 +12,10 @@ class UserBase(BaseModel):
     role: UserRole = Field(default=UserRole.user)
     is_blocked: bool = Field(default=False)
 
+
 class UserCreate(UserBase):
     pass
+
 
 class UserUpdate(UserBase):
     email: EmailStr | None = None
@@ -22,6 +24,7 @@ class UserUpdate(UserBase):
     password_hash: str | None = None
     role: UserRole | None = None
     is_blocked: bool | None = None
+
 
 class UserInDB(UserBase):
     id: int

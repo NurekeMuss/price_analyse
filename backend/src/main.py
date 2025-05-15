@@ -9,11 +9,13 @@ config = get_backend_config()
 
 logger = get_logger(__name__)
 
+
 app = FastAPI(
     title="FastAPI Template",
     description="A FastAPI template with SQLAlchemy, Alembic, and JWT authentication.",
     version="0.1.0",
 )
+
 
 # Middleware
 app.add_middleware(
@@ -24,12 +26,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup():
     await init_db()
     logger.info("Database initialized")
 
-app.on_event("shutdown")
+
+@app.on_event("shutdown")
 async def shutdown():
     """
     Shutdown event handler.
@@ -40,4 +44,3 @@ async def shutdown():
 
 # Include routers
 app.include_router(api_router)
-#

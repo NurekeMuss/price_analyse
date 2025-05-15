@@ -5,8 +5,9 @@ reuseable_oauth = OAuth2PasswordBearer(
     tokenUrl="/auth/login",
 )
 
+
 async def reuseable_oauth_websocket(websocket: WebSocket):
-    token = websocket.query_params.get("token")  # Or websocket.headers.get("Authorization")
+    token = websocket.query_params.get("token")
     if not token:
         await websocket.close(code=1008)
         raise HTTPException(
