@@ -24,7 +24,7 @@ class PricePredictor:
         df['description_length'] = df['description'].apply(len)
         df['is_active'] = df['is_active'].astype(int)
         y = df['price']
-        X = df.drop(columns=['name', 'description', 'image_url', 'price'])
+        X = df.drop(columns=['name', 'description', 'image_url', 'price', 'id', 'created_at'])
         X = pd.get_dummies(X, drop_first=True)
         return X, y, df
 
