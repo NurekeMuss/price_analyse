@@ -44,7 +44,7 @@ async def get_user_by_id(
     return await user_service.get_user_by_id(db=db, user_id=user_id)
 
 @router.get("/me", response_model=UserInDB)
-async def get_user_by_id(
+async def get_user_me(
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
     user = Depends(get_current_user) 
