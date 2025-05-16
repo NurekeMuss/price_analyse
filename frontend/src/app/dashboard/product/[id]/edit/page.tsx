@@ -17,6 +17,8 @@ import ProductService, { type Product, type UpdateProductData } from "@/lib/prod
 import { useAuth } from "@/lib/auth-context"
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
+  const productId = Number.parseInt(params.id)
+
   const router = useRouter()
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -42,7 +44,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
     const fetchProduct = async () => {
       try {
-        const productData = await ProductService.getProduct(Number.parseInt(params.id))
+        const productData = await ProductService.getProduct(productId)
         setProduct(productData)
         setFormData({
           name: productData.name,
@@ -61,7 +63,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     }
 
     fetchProduct()
-  }, [params.id, router, user])
+  }, [productId, router, user])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -86,12 +88,16 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       return
     }
 
-    if (formData.price <= 0) {
+    // Ensure price is defined and greater than 0
+    const price = formData.price ?? 0
+    if (price <= 0) {
       toast.error("Price must be greater than 0")
       return
     }
 
-    if (formData.quantity < 0) {
+    // Ensure quantity is defined and not negative
+    const quantity = formData.quantity ?? 0
+    if (quantity < 0) {
       toast.error("Quantity cannot be negative")
       return
     }
@@ -99,9 +105,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     setLoading(true)
 
     try {
-      await ProductService.updateProduct(Number.parseInt(params.id), formData)
+      await ProductService.updateProduct(productId, formData)
       toast.success("Product updated successfully")
-      router.push(`/dashboard/product/${params.id}`)
+      router.push(`/dashboard/product/${productId}`)
     } catch (error) {
       console.error("Error updating product:", error)
       toast.error("Failed to update product")
@@ -125,7 +131,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     <div className="container py-8 px-8">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-2">
-          <Link href={`/dashboard/product/${params.id}`}>
+          <Link href={`/dashboard/product/${productId}`}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Product
           </Link>
         </Button>
@@ -223,7 +229,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" asChild>
-                <Link href={`/dashboard/product/${params.id}`}>Cancel</Link>
+                <Link href={`/dashboard/product/${productId}`}>Cancel</Link>
               </Button>
               <Button type="submit" form="product-form" disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}

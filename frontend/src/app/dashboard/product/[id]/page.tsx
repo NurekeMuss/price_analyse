@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-context"
-import { ArrowLeft, Edit, Trash2, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, AlertTriangle, TrendingUp, DollarSign } from "lucide-react"
 import Link from "next/link"
 import ProductService, { type Product } from "@/lib/product-service"
 import {
@@ -26,11 +26,15 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function ProductPage({ params }: { params: { id: string } }) {
+  const productId = Number.parseInt(params.id)
+
   const router = useRouter()
   const { user } = useAuth()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [recommendedPrice, setRecommendedPrice] = useState<number | null>(null)
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false)
 
   useEffect(() => {
     // Redirect if not logged in
@@ -42,8 +46,20 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     // Fetch product data
     const fetchData = async () => {
       try {
-        const productData = await ProductService.getProduct(Number.parseInt(params.id))
+        const productData = await ProductService.getProduct(productId)
         setProduct(productData)
+
+        // Fetch recommended price
+        try {
+          setLoadingRecommendation(true)
+          const price = await ProductService.getRecommendedPrice(productId)
+          setRecommendedPrice(price)
+        } catch (error) {
+          console.error("Error fetching recommended price:", error)
+          // Don't show error toast for this as it's not critical
+        } finally {
+          setLoadingRecommendation(false)
+        }
       } catch (error) {
         console.error("Error fetching product:", error)
         toast.error("Failed to load product data")
@@ -54,7 +70,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
 
     fetchData()
-  }, [params.id, router, user])
+  }, [productId, router, user])
 
   const handleDeleteProduct = async () => {
     if (!product) return
@@ -66,6 +82,22 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     } catch (error) {
       console.error("Error deleting product:", error)
       toast.error("Failed to delete product")
+    }
+  }
+
+  const handleUpdatePrice = async (newPrice: number) => {
+    if (!product) return
+
+    try {
+      await ProductService.updateProduct(product.id, { price: newPrice })
+      toast.success("Price updated successfully")
+
+      // Refresh product data
+      const updatedProduct = await ProductService.getProduct(product.id)
+      setProduct(updatedProduct)
+    } catch (error) {
+      console.error("Error updating price:", error)
+      toast.error("Failed to update price")
     }
   }
 
@@ -154,6 +186,33 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                   <h3 className="text-sm font-medium text-muted-foreground">Current Price</h3>
                   <p className="text-2xl font-bold">${product.price.toFixed(2)}</p>
                 </div>
+
+                {recommendedPrice !== null && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-1" /> Recommended Price
+                      </h3>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xl font-medium">${recommendedPrice.toFixed(2)}</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdatePrice(recommendedPrice)}
+                          className="text-xs"
+                        >
+                          <DollarSign className="h-3 w-3 mr-1" /> Apply
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {recommendedPrice > product.price
+                          ? `${(((recommendedPrice - product.price) / product.price) * 100).toFixed(1)}% increase recommended`
+                          : `${(((product.price - recommendedPrice) / product.price) * 100).toFixed(1)}% decrease recommended`}
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <Separator />
 
