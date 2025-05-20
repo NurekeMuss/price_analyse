@@ -11,10 +11,12 @@ class UserBase(BaseModel):
     password_hash: str
     role: UserRole = Field(default=UserRole.user)
     is_blocked: bool = Field(default=False)
+    is_2fa_enabled: bool = Field(default=False)
 
 
 class UserCreate(UserBase):
-    pass
+    password_hash: str
+    is_2fa_enabled: bool = False
 
 
 class UserUpdate(UserBase):
@@ -24,11 +26,14 @@ class UserUpdate(UserBase):
     password_hash: str | None = None
     role: UserRole | None = None
     is_blocked: bool | None = None
+    is_2fa_enabled: bool | None = None
+    totp_secret: str | None = None
 
 
 class UserInDB(UserBase):
     id: int
     created_at: datetime
+    totp_secret: str | None = None
 
     class Config:
         orm_mode = True

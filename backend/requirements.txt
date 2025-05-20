@@ -26,3 +26,6 @@ uvicorn==0.34.2
 xgboost==3.0.1
 seaborn==0.13.2
 scikit-learn==1.6.1
+pyotp==2.8.0
+qrcode==7.4.2
+pillow==10.0.0

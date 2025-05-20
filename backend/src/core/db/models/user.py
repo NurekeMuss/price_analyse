@@ -12,3 +12,5 @@ class UserTable(TableBase):
     password_hash = Column(String(256))
     role = Column(String(10))  # admin or user
     is_blocked = Column(Boolean, default=False)
+    is_2fa_enabled = Column(Boolean, default=False, nullable=False)
+    totp_secret = Column(String, nullable=True)
