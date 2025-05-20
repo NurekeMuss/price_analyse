@@ -15,6 +15,23 @@ services:
     networks:
       - backend_network
 
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - frontend_network
+      - backend_network
+
   database:
     container_name: database
     image: postgres:latest
@@ -30,22 +47,8 @@ services:
     networks:
       - backend_network
 
-  # frontend:
-  #   container_name: frontend
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./frontend:/app
-  #   env_file:
-  #     - ./frontend/.env
-  #   depends_on:
-  #     - backend
-  #   networks:
-  #     - frontend_network
-
 networks:
   backend_network:
+    driver: bridge
+  frontend_network:
     driver: bridge
