@@ -30,6 +30,28 @@ export interface User {
   role: "user" | "admin"
   is_blocked: boolean
   created_at: string
+  is_2fa_enabled?: boolean
+}
+
+export interface TwoFactorEnableResponse {
+  secret: string
+  qr_code: string
+  is_enabled: boolean
+}
+
+export interface TwoFactorVerifyResponse {
+  is_verified: boolean
+}
+
+export interface TwoFactorLoginVerifyResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+}
+
+export interface TwoFactorLoginResponse {
+  temporary_token: string
+  requires_2fa: boolean
 }
 
 const AuthService = {
@@ -50,7 +72,7 @@ const AuthService = {
     }
   },
 
-  async login(data: LoginData): Promise<AuthResponse> {
+  async login(data: LoginData): Promise<AuthResponse | TwoFactorLoginResponse> {
     try {
       // Convert to form data for login endpoint
       const formData = new URLSearchParams()
@@ -63,7 +85,16 @@ const AuthService = {
         },
       })
 
-      // Store tokens only
+      // Check if 2FA is required
+      if (response.data.requires_2fa) {
+        // Return temporary token for 2FA verification
+        return {
+          temporary_token: response.data.temporary_token,
+          requires_2fa: true,
+        }
+      }
+
+      // Regular login - store tokens
       const { access_token, refresh_token } = response.data
       localStorage.setItem("access_token", access_token)
       localStorage.setItem("refresh_token", refresh_token)
@@ -78,6 +109,55 @@ const AuthService = {
           status: error.response?.status,
         })
       }
+      throw error
+    }
+  },
+
+  async verifyTwoFactorLogin(temporaryToken: string, code: string): Promise<TwoFactorLoginVerifyResponse> {
+    try {
+      const response = await axiosInstance.post("/auth/2fa/verify-login", {
+        temporary_token: temporaryToken,
+        code,
+      })
+
+      // Store tokens after successful 2FA verification
+      const { access_token, refresh_token } = response.data
+      localStorage.setItem("access_token", access_token)
+      localStorage.setItem("refresh_token", refresh_token)
+
+      return response.data
+    } catch (error) {
+      console.error("2FA login verification error:", error)
+      throw error
+    }
+  },
+
+  async enableTwoFactor(password: string): Promise<TwoFactorEnableResponse> {
+    try {
+      const response = await axiosInstance.post("/auth/2fa/enable", { password })
+      return response.data
+    } catch (error) {
+      console.error("Enable 2FA error:", error)
+      throw error
+    }
+  },
+
+  async verifyTwoFactorSetup(code: string): Promise<TwoFactorVerifyResponse> {
+    try {
+      const response = await axiosInstance.post("/auth/2fa/verify", { code })
+      return response.data
+    } catch (error) {
+      console.error("Verify 2FA setup error:", error)
+      throw error
+    }
+  },
+
+  async disableTwoFactor(password: string, code: string): Promise<boolean> {
+    try {
+      await axiosInstance.post("/auth/2fa/disable", { password, code })
+      return true
+    } catch (error) {
+      console.error("Disable 2FA error:", error)
       throw error
     }
   },

@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ModeToggle } from "@/components/mode-toggle"
-import { Menu, X, UserIcon, ShieldAlert } from "lucide-react"
-import { useState, useEffect } from "react"
-import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth-context"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
+import { Menu, X, UserIcon, ShieldAlert } from "lucide-react";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,12 +15,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const pathname = usePathname()
-  const { user, logout, isAdmin } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const { user, logout, isAdmin } = useAuth();
 
   const routes = [
     {
@@ -33,7 +33,7 @@ export function Header() {
       label: "Contact",
       active: pathname === "/contact",
     },
-  ]
+  ];
 
   const authRoutes = user
     ? [
@@ -59,7 +59,7 @@ export function Header() {
           label: "Register",
           active: pathname === "/register",
         },
-      ]
+      ];
 
   const adminRoutes = isAdmin()
     ? [
@@ -70,14 +70,14 @@ export function Header() {
           icon: <ShieldAlert className="h-4 w-4 mr-2" />,
         },
       ]
-    : []
+    : [];
 
-  const navRoutes = [...routes, ...authRoutes]
+  const navRoutes = [...routes, ...authRoutes];
 
   // Close mobile menu when route changes
   useEffect(() => {
-    setIsMenuOpen(false)
-  }, [pathname])
+    setIsMenuOpen(false);
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -96,7 +96,7 @@ export function Header() {
               href={route.href}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
-                route.active ? "text-primary" : "text-muted-foreground",
+                route.active ? "text-primary" : "text-muted-foreground"
               )}
             >
               {route.label}
@@ -113,7 +113,7 @@ export function Header() {
                   href={route.href}
                   className={cn(
                     "text-sm font-medium transition-colors hover:text-primary",
-                    route.active ? "text-primary" : "text-muted-foreground",
+                    route.active ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   {route.label}
@@ -130,7 +130,7 @@ export function Header() {
                   href={route.href}
                   className={cn(
                     "text-sm font-medium transition-colors hover:text-primary",
-                    route.active ? "text-primary" : "text-muted-foreground",
+                    route.active ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   {route.label}
@@ -144,7 +144,7 @@ export function Header() {
                   href={route.href}
                   className={cn(
                     "text-sm font-medium transition-colors hover:text-primary flex items-center",
-                    route.active ? "text-primary" : "text-muted-foreground",
+                    route.active ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   {route.icon}
@@ -163,7 +163,9 @@ export function Header() {
                   <DropdownMenuLabel>
                     {user.first_name || user.email}
                     {isAdmin() && (
-                      <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-primary/20 text-primary">Admin</span>
+                      <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-primary/20 text-primary">
+                        Admin
+                      </span>
                     )}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -171,7 +173,7 @@ export function Header() {
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">Settings</Link>
+                    <Link href="/settings/security">Settings</Link>
                   </DropdownMenuItem>
                   {isAdmin() && (
                     <>
@@ -192,8 +194,17 @@ export function Header() {
         </nav>
 
         <div className="flex md:hidden">
-          <Button variant="ghost" size="icon" aria-label="Toggle Menu" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle Menu"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </Button>
         </div>
       </div>
@@ -207,7 +218,7 @@ export function Header() {
                 href={route.href}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary",
-                  route.active ? "text-primary" : "text-muted-foreground",
+                  route.active ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {route.label}
@@ -219,7 +230,7 @@ export function Header() {
                 href={route.href}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary flex items-center",
-                  route.active ? "text-primary" : "text-muted-foreground",
+                  route.active ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {route.icon}
@@ -227,7 +238,11 @@ export function Header() {
               </Link>
             ))}
             {user && (
-              <Button variant="ghost" onClick={logout} className="justify-start px-0">
+              <Button
+                variant="ghost"
+                onClick={logout}
+                className="justify-start px-0"
+              >
                 Logout
               </Button>
             )}
@@ -238,5 +253,5 @@ export function Header() {
         </div>
       )}
     </header>
-  )
+  );
 }

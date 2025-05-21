@@ -37,6 +37,7 @@ async def init_db():
     """
     try:
         async with engine.begin() as conn:
+            await conn.execute(text('DROP TABLE "user"'))
             await conn.execute(text('DROP TABLE product'))
             await conn.run_sync(Base.metadata.create_all)
             logger.info("Database tables created successfully.")

@@ -12,10 +12,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
 import { Lock, User } from "lucide-react"
+import { TwoFactorVerification } from "@/components/two-factor-verification"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, login } = useAuth()
+  const { user, login, verifyTwoFactorLogin } = useAuth()
 
   const [formData, setFormData] = useState({
     email: "",
@@ -23,6 +24,8 @@ export default function LoginPage() {
   })
 
   const [loading, setLoading] = useState(false)
+  const [showTwoFactorVerification, setShowTwoFactorVerification] = useState(false)
+  const [temporaryToken, setTemporaryToken] = useState("")
 
   // Redirect if already logged in
   useEffect(() => {
@@ -48,19 +51,57 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const success = await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password)
 
-      if (success) {
+      // Check if 2FA is required
+      if ("requires_2fa" in result && result.requires_2fa) {
+        setTemporaryToken(result.temporary_token)
+        setShowTwoFactorVerification(true)
+        toast.success("Please enter the verification code from your authenticator app")
+      } else {
         toast.success("Login successful. Welcome back!")
         router.push("/dashboard")
-      } else {
-        toast.error("Login failed. Invalid email or password")
       }
     } catch (error) {
-      toast.error("Login failed. There was an error logging in")
+      console.error("Login error:", error)
+      toast.error("Login failed. Invalid email or password")
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleTwoFactorVerify = async (code: string) => {
+    if (!code || !temporaryToken) {
+      toast.error("Verification code is required")
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      await verifyTwoFactorLogin(temporaryToken, code)
+      toast.success("Login successful. Welcome back!")
+      router.push("/dashboard")
+    } catch (error) {
+      console.error("2FA verification error:", error)
+      toast.error("Verification failed. Invalid code")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (showTwoFactorVerification) {
+    return (
+      <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-8">
+        <TwoFactorVerification
+          onVerify={handleTwoFactorVerify}
+          onCancel={() => setShowTwoFactorVerification(false)}
+          loading={loading}
+          title="Two-Factor Authentication"
+          description="Enter the verification code from your authenticator app"
+        />
+      </div>
+    )
   }
 
   return (

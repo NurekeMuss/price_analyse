@@ -20,7 +20,7 @@ class TOTPManager:
         totp = pyotp.TOTP(secret, digits=self.digits, interval=self.interval)
         return totp.verify(code)
 
-    def generate_qr_code(self, secret: str, email: str, issuer_name: str = "YourApp") -> str:
+    def generate_qr_code(self, secret: str, email: str, issuer_name: str = "Alibek_Legenda") -> str:
         """Generate a QR code for the TOTP secret"""
         totp = pyotp.TOTP(secret, digits=self.digits, interval=self.interval)
         uri = totp.provisioning_uri(name=email, issuer_name=issuer_name)

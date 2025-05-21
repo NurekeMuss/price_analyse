@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-context"
-import { ArrowLeft, User, Mail, Calendar } from "lucide-react"
+import { ArrowLeft, User, Mail, Calendar, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -63,7 +63,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container py-8 px-8">
+    <div className="container py-8">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-2">
           <Link href="/dashboard">
@@ -112,6 +112,13 @@ export default function ProfilePage() {
                   <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Joined:</span>
                   <span className="text-sm ml-auto">{new Date(user.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center">
+                  <ShieldCheck className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Two-Factor:</span>
+                  <span className={`text-sm ml-auto ${user.is_2fa_enabled ? "text-green-600" : "text-red-600"}`}>
+                    {user.is_2fa_enabled ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -186,7 +193,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-muted-foreground">Update your password for better security</p>
                 </div>
                 <Button variant="outline" asChild>
-                  <Link href="/change-password">Change Password</Link>
+                  <Link href="/settings/security">Change Password</Link>
                 </Button>
               </div>
 
@@ -194,11 +201,17 @@ export default function ProfilePage() {
 
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="font-medium">Two-Factor Authentication</h3>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+                  <h3 className="font-medium flex items-center">
+                    <ShieldCheck className="h-4 w-4 mr-2 text-primary" /> Two-Factor Authentication
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {user.is_2fa_enabled
+                      ? "Your account is protected with two-factor authentication"
+                      : "Add an extra layer of security to your account"}
+                  </p>
                 </div>
-                <Button variant="outline" disabled>
-                  Coming Soon
+                <Button variant="outline" asChild>
+                  <Link href="/settings/security">{user.is_2fa_enabled ? "Manage" : "Enable"}</Link>
                 </Button>
               </div>
             </CardContent>
