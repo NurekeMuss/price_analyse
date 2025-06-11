@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { AuthProvider } from "@/lib/auth-context"
-import { Toaster } from "react-hot-toast"
-import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/lib/auth-context";
+import { Toaster } from "react-hot-toast";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -14,5 +14,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <Toaster position="top-right" />
       </AuthProvider>
     </ThemeProvider>
-  )
+  );
 }
