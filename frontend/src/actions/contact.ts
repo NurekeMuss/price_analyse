@@ -42,8 +42,8 @@ export async function sendContactEmail(
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "helloworldnurik@gmail.com",
-        pass: "yvih rvdx bggn cmup",
+        user: "ibrvevv@gmail.com",
+        pass: "wesj rygt lupg tnni",
       },
     });
 
@@ -61,7 +61,7 @@ export async function sendContactEmail(
     // Enhanced email content with professional styling
     const mailOptions = {
       from: `"${validatedData.firstName} ${validatedData.lastName}" <${validatedData.email}>`,
-      to: "helloworldnurik@gmail.com",
+      to: "ibrvevv@gmail.com",
       subject: `🔔 New Contact Form: ${validatedData.subject}`,
       text: `
 NEW CONTACT FORM SUBMISSION
